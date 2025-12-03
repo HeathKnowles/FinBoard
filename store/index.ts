@@ -1,8 +1,7 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import layoutReducer from "@/store/layoutSlice"
-import widgetConfigReducer from "./widgetConfigSlice";
-import apiManagerReducer from "./apiManagerSlice";
 import dashboardReducer from "./dashboardSlice";
+import widgetsReducer, { widgetsSlice } from "./widgetsSlice";
 import themeReducer from "./themeSlice";
 import { loadState, saveState } from "./persist";
 
@@ -14,10 +13,9 @@ if (typeof window !== "undefined") {
 
 const rootReducer = combineReducers({
   layout: layoutReducer,
-  widgetConfigs: widgetConfigReducer,
-  api: apiManagerReducer,
   dashboard: dashboardReducer,
   theme: themeReducer,
+  widgets: widgetsReducer,
 });
 
 export const store = configureStore({

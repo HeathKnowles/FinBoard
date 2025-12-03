@@ -1,74 +1,54 @@
 "use client";
 
-import GridLayout, { Layout } from "react-grid-layout";
+import { Responsive, WidthProvider } from "react-grid-layout";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  updateWidgetPosition,
-  updateWidgetSize,
-} from "@/store/layoutSlice";
+import { updateLayout, removeWidget } from "@/store/widgetsSlice";
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 export default function DashboardGrid() {
   const dispatch = useAppDispatch();
-  const widgets = useAppSelector((state) => state.layout.widgets);
-  const order = useAppSelector((state) => state.layout.order);
-
-  const layout: Layout[] = order.map((id) => {
-    const w = widgets[id];
-
-    return {
-      i: w.id,
-      x: w.x,
-      y: w.y,
-      w: w.w,
-      h: w.h,
-    };
-  });
-
-  const onLayoutChange = (updatedLayout: Layout[]) => {
-    updatedLayout.forEach((item) => {
-      dispatch(
-        updateWidgetPosition({
-          id: item.i,
-          x: item.x,
-          y: item.y,
-        })
-      );
-
-      dispatch(
-        updateWidgetSize({
-          id: item.i,
-          w: item.w,
-          h: item.h,
-        })
-      );
-    });
-  };
+  const layout = useAppSelector((s) => s.widgets.layout);
+  const widgets = useAppSelector((s) => s.widgets.widgets);
 
   return (
-    <GridLayout
-      className="layout"
-      layout={layout}
-      cols={12}
-      rowHeight={30}
-      width={1200}
-      onLayoutChange={onLayoutChange}
-      draggableHandle=".drag-handle"
-    >
-      {order.map((id) => {
-        const widget = widgets[id];
-        return (
-          <div key={id} className="bg-zinc-800 text-white rounded-md p-2">
-            <div className="drag-handle cursor-move font-semibold mb-2">
-              :: Drag
+    <div className="p-4">
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={{ lg: layout }}
+        rowHeight={30}
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+        draggableHandle=".widget-drag-handle"
+        onLayoutChange={(current) => {
+          dispatch(updateLayout(current));
+        }}
+      >
+        {widgets.map((widget) => (
+          <div
+            key={widget.id}
+            className="border bg-gray-900 text-white rounded-md shadow-md overflow-hidden"
+          >
+            <div className="flex justify-between items-center p-2 bg-gray-700">
+              <span className="font-semibold widget-drag-handle cursor-move">
+                Widget {widget.id}
+              </span>
+
+              <button
+                onClick={() => dispatch(removeWidget(widget.id))}
+                className="text-red-400 hover:text-red-300"
+              >
+                ✕
+              </button>
             </div>
 
-            <div>
-              <p>Widget: {widget.id}</p>
-              <p>Type: {widget.type}</p>
+            <div className="p-3">
+              <pre className="text-xs opacity-70">
+                {JSON.stringify(widget.data || {}, null, 2)}
+              </pre>
             </div>
           </div>
-        );
-      })}
-    </GridLayout>
+        ))}
+      </ResponsiveGridLayout>
+    </div>
   );
 }

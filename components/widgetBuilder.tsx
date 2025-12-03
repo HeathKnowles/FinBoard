@@ -16,7 +16,7 @@ import { Label } from "./ui/label";
 import Image from "next/image";
 import { Checkbox } from "./ui/checkbox";
 import { Separator } from "./ui/separator";
-import { DisplayMode } from "./displayMode";
+import { DisplayMode } from "./displayModeSelector";
 import FieldsSelector from "./fieldSelector";
 
 export function WidgetBuilder() {
