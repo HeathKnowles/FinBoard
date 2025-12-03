@@ -1,55 +1,75 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Layout } from "react-grid-layout";
+import type { DisplayConfig } from "@/types/display";
 
-interface Widget {
+export interface Widget {
   id: string;
-  type: string;
-  data?: any;
+  name: string;
+  apiUrl: string;
+  refresh: number;
+  config: DisplayConfig;
+  data: any[];            
+  flattened?: any;     
+  lastUpdated: number;
 }
 
-export interface WidgetsState {
-  layout: Layout[];
+interface WidgetsState {
   widgets: Widget[];
+  layout: any[];
 }
 
 const initialState: WidgetsState = {
-  layout: [],
   widgets: [],
+  layout: [],
 };
 
 export const widgetsSlice = createSlice({
   name: "widgets",
   initialState,
   reducers: {
-    addWidget: (
-      state,
-      action: PayloadAction<{ id: string; w?: number; h?: number }>
-    ) => {
-      const { id, w = 4, h = 4 } = action.payload;
-
-      state.widgets.push({ id, type: "generic" });
-
-      state.layout.push({
-        i: id,
-        x: 0,
-        y: Infinity,
-        w,
-        h,
+    addWidget: (state, action: PayloadAction<Omit<Widget, "lastUpdated">>) => {
+      state.widgets.push({
+        ...action.payload,
+        lastUpdated: Date.now(),
       });
     },
 
-    removeWidget: (state, action: PayloadAction<string>) => {
-      const id = action.payload;
-
-      state.widgets = state.widgets.filter((w) => w.id !== id);
-      state.layout = state.layout.filter((l) => l.i !== id);
+    updateWidgetData: (
+      state,
+      action: PayloadAction<{ id: string; data: any[]; flattened: any }>
+    ) => {
+      const widget = state.widgets.find((w) => w.id === action.payload.id);
+      if (widget) {
+        widget.data = action.payload.data;
+        widget.flattened = action.payload.flattened;
+        widget.lastUpdated = Date.now();
+      }
     },
 
-    updateLayout: (state, action: PayloadAction<Layout[]>) => {
+    removeWidget: (state, action: PayloadAction<string>) => {
+      state.widgets = state.widgets.filter((w) => w.id !== action.payload)
+    },
+
+    updateWidgetConfig: (
+      state,
+      action: PayloadAction<{id: string; config:DisplayConfig}>
+    ) => {
+      const w = state.widgets.find((x) => x.id === action.payload.id);
+      if (w) w.config = action.payload.config;
+    },
+    setLayout: (state, action: PayloadAction<any[]>) => {
       state.layout = action.payload;
+    },
+    resetLayout: (state) => {
+      state.layout = [];
     },
   },
 });
 
-export const { addWidget, removeWidget, updateLayout } = widgetsSlice.actions;
+export const { 
+  addWidget,
+  removeWidget,
+  updateWidgetData,
+  updateWidgetConfig,
+  setLayout,
+  resetLayout } = widgetsSlice.actions;
 export default widgetsSlice.reducer;

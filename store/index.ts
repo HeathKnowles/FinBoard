@@ -1,8 +1,10 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import layoutReducer from "@/store/layoutSlice"
-import dashboardReducer from "./dashboardSlice";
-import widgetsReducer, { widgetsSlice } from "./widgetsSlice";
-import themeReducer from "./themeSlice";
+
+import layoutReducer from "@/store/layoutSlice";
+import dashboardReducer from "@/store/dashboardSlice";
+import widgetsReducer from "@/store/widgetsSlice";
+import themeReducer from "@/store/themeSlice";
+
 import { loadState, saveState } from "./persist";
 
 let preloadedState: any = undefined;
@@ -15,7 +17,7 @@ const rootReducer = combineReducers({
   layout: layoutReducer,
   dashboard: dashboardReducer,
   theme: themeReducer,
-  widgets: widgetsReducer,
+  widgets: widgetsReducer,    
 });
 
 export const store = configureStore({

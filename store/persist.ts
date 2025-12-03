@@ -1,14 +1,12 @@
 const PERSIST_KEY = "finboard_dashboard_state";
 
-export const saveState = (state: unknown) => {
+export const saveState = (state: any) => {
   try {
-    const s = state as any;
-
     const serialized = JSON.stringify({
-      layout: s.layout,
-      widgetConfigs: s.widgetConfigs,
-      api: s.api,
-      theme: s.theme,
+      layout: state.layout,
+      dashboard: state.dashboard,
+      theme: state.theme,
+      widgets: state.widgets,
     });
 
     if (typeof window !== "undefined") {
@@ -19,7 +17,7 @@ export const saveState = (state: unknown) => {
   }
 };
 
-export const loadState = (): any | undefined => {
+export const loadState = () => {
   try {
     if (typeof window === "undefined") return undefined;
 
