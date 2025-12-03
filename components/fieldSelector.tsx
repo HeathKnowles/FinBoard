@@ -1,5 +1,5 @@
 "use client";
-import { useState, FC } from "react";
+import { useState, useEffect, FC } from "react";
 import { Label } from "@/components/ui/label";
 
 interface FieldsSelectorProps {
@@ -11,12 +11,18 @@ const FieldsSelector: FC<FieldsSelectorProps> = ({ fields = [], onChange }) => {
   const [availableFields, setAvailableFields] = useState<string[]>(fields);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
 
+  useEffect(() => {
+    setAvailableFields(fields);
+    setSelectedFields([]); 
+  }, [fields]);
+
   const addField = (field: string) => {
     setSelectedFields((prev) => {
       const updated = [...prev, field];
       onChange?.(updated);
       return updated;
     });
+
     setAvailableFields((prev) => prev.filter((f) => f !== field));
   };
 

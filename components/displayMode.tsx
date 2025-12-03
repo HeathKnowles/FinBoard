@@ -1,7 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CreditCard, Table, ChartColumn } from "lucide-react"
 
-export function DisplayMode() {
+export function DisplayMode({raw, flattened}: {raw: any; flattened: any}) {
   return (
     <ToggleGroup type="multiple" variant="outline" spacing={1} size="sm">
       <ToggleGroupItem 
