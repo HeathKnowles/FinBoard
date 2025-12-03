@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { Button } from "./ui/button";
 import {
@@ -14,144 +13,200 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import Image from "next/image";
-import { Checkbox } from "./ui/checkbox";
-import { Separator } from "./ui/separator";
-import { DisplayMode } from "./displayModeSelector";
+import { Separator } from "@/components/ui/separator";
 import FieldsSelector from "./fieldSelector";
+import DisplayModeBuilder from "./displayModeBuilder";
+import { useAppDispatch } from "@/store/hooks";
+import { addWidget } from "@/store/widgetsSlice";
+import type { DisplayConfig } from "@/types/display";
 
 export function WidgetBuilder() {
-  const [testSuccess, setTestSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
 
+  const [name, setName] = useState("");
+  const [apiUrl, setApiUrl] = useState("");
+  const [refresh, setRefresh] = useState(60);
+
+  const [loading, setLoading] = useState(false);
+  const [testSuccess, setTestSuccess] = useState(false);
   const [rawData, setRawData] = useState<any>(null);
-  const [flattenedData, setFlattenedData] = useState<any>(null);
+  const [flattenedData, setFlattenedData] = useState<string[]>([]);
+
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [displayConfig, setDisplayConfig] = useState<DisplayConfig | null>(null);
 
   async function handleTest() {
-    const form = new FormData(document.querySelector("form")!);
-    const apiUrl = form.get("apiurl");
-
-    if (!apiUrl) {
+    if (!apiUrl.trim()) {
       alert("Please enter an API URL");
       return;
     }
 
     setLoading(true);
     setTestSuccess(false);
+    setSelectedFields([]);
+    setDisplayConfig(null);
 
     try {
       const res = await fetch("/api/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: apiUrl,
-          method: "GET",
-          headers: {},
-        }),
+        body: JSON.stringify({ url: apiUrl }),
       });
-
       const json = await res.json();
-
       if (!json.success) throw new Error(json.error);
 
-      // Save data
       setRawData(json.raw);
-      setFlattenedData(json.flattened);
-      setSelectedFields([]);
-
+      setFlattenedData(
+        json.flattened.filter(
+          (key: string) => key && isNaN(Number(key))
+        )
+      );
       setTestSuccess(true);
-    } catch (err: any) {
-      alert("Test failed: " + err.message);
+    } catch (error: any) {
+      alert("Test failed: " + error.message);
       setTestSuccess(false);
     } finally {
       setLoading(false);
     }
   }
 
+  function handleAddWidget() {
+    if (!testSuccess) {
+      alert("Please test the API first.");
+      return;
+    }
+    if (!selectedFields.length) {
+      alert("Please select fields.");
+      return;
+    }
+    if (!displayConfig) {
+      alert("Please choose a display mode.");
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    dispatch(
+      addWidget({
+        id,
+        name: name || "New Widget",
+        apiUrl,
+        refresh,
+        config: displayConfig,
+        data: Array.isArray(rawData) ? rawData : [rawData],
+        flattened: flattenedData,
+      })
+    );
+  }
+
   return (
     <Dialog>
-      <form>
-        <DialogTrigger asChild>
-          <Button variant="outline" className="bg-green-500">
-            + Add Widget
-          </Button>
-        </DialogTrigger>
+      <DialogTrigger asChild>
+        <Button className="bg-green-500 hover:bg-green-600 text-white font-medium transition-colors">
+          + Add Widget
+        </Button>
+      </DialogTrigger>
+      {/* <CHANGE> Improved responsive dialog with better max-width handling */}
+      <DialogContent className="w-full max-w-4xl bg-gray-800 text-white border-gray-700 rounded-lg shadow-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-xl sm:text-2xl font-bold">Add New Widget</DialogTitle>
+        </DialogHeader>
+        <Separator className="bg-gray-700" />
 
-        <DialogContent className="sm:max-w-100vh bg-gray-800 text-white">
-          <DialogHeader>
-            <DialogTitle>Add New Widget</DialogTitle>
-          </DialogHeader>
-
-          <Separator />
-
-          <div className="grid gap-2">
-            <Label htmlFor="wtname">Widget Name</Label>
-            <Input id="wtname" name="wtname" />
+        {/* Form Section */}
+        <div className="space-y-4 sm:space-y-5">
+          {/* NAME */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-200">Widget Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Stock Widget, Crypto Widget..."
+              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:ring-green-500"
+            />
           </div>
 
-          <div className="grid gap-2 mt-2">
-            <Label htmlFor="apiurl">API URL</Label>
-            <div className="flex justify-between items-center gap-2">
-              <Input id="apiurl" name="apiurl" />
-
+          {/* API + TEST */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-200">API URL</Label>
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              <Input
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                placeholder="https://finnhub.io/api/v1/quote?symbol=AAPL&token=..."
+                className="flex-1 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:ring-green-500 min-h-10"
+              />
               <Button
-                className="bg-green-500"
+                className="bg-green-500 hover:bg-green-600 text-white font-medium transition-colors w-full sm:w-auto whitespace-nowrap"
                 type="button"
                 onClick={handleTest}
+                disabled={loading}
               >
-                <Image src="/test.png" width={25} height={25} alt="Test" />
+                <Image src="/test.png" width={16} height={16} alt="Test" className="mr-2" />
                 {loading ? "Testing..." : "Test"}
               </Button>
             </div>
           </div>
 
-          <div className="grid gap-2 mt-2">
-            <Label htmlFor="refint">Refresh Interval (seconds)</Label>
-            <Input id="refint" name="refint" />
+          {/* REFRESH */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-200">Refresh Interval (seconds)</Label>
+            <Input
+              type="number"
+              min={5}
+              value={refresh}
+              onChange={(e) => setRefresh(Number(e.target.value))}
+              className="bg-gray-700 border-gray-600 text-white focus:border-green-500 focus:ring-green-500"
+            />
           </div>
 
-    
+          {/* AFTER TEST SUCCESS */}
           {testSuccess && (
             <>
-              <Separator className="my-4" />
+              <Separator className="bg-gray-700 my-4" />
 
-              <div className="grid gap-3">
-                <Label>Select Fields to Display</Label>
-                <Label htmlFor="dymode">Display Mode</Label>
-                <DisplayMode raw={rawData} flattened={flattenedData} />
-              </div>
-
-              {/* SEARCH FIELD */}
-              <div className="grid gap-2 mt-3">
-                <Label>Search Field</Label>
-                <Input id="srchfld" />
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="array" />
-                  <Label htmlFor="array">Show arrays only (for table views)</Label>
-                </div>
-              </div>
-
+              {/* STEP 1 – SELECT FIELDS */}
               <FieldsSelector
-                fields={flattenedData ? Object.keys(flattenedData) : []}
-                onChange={(sel) => setSelectedFields(sel)}
+                fields={flattenedData}
+                onChange={(fields) => {
+                  setSelectedFields(fields);
+                  setDisplayConfig(null);
+                }}
               />
+
+              {/* STEP 2 – DISPLAY MODE */}
+              {selectedFields.length > 0 && (
+                <>
+                  <Separator className="bg-gray-700 my-4" />
+                  <Label className="text-sm font-medium text-gray-200 block">Display Mode</Label>
+                  <DisplayModeBuilder
+                    fields={selectedFields}
+                    onChange={(cfg) => setDisplayConfig(cfg)}
+                  />
+                </>
+              )}
             </>
           )}
+        </div>
 
-          <Separator className="my-4" />
-
-          <DialogFooter className="flex items-center justify-end gap-2">
-            <DialogClose asChild>
-              <Button className="bg-gray-500">Cancel</Button>
-            </DialogClose>
-
-            <Button className="bg-green-500">
+        <Separator className="bg-gray-700 my-4" />
+        {/* <CHANGE> Responsive footer with better mobile layout */}
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
+          <DialogClose asChild>
+            <Button className="bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors w-full sm:w-auto">
+              Cancel
+            </Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button
+              className="bg-green-500 hover:bg-green-600 text-white font-medium transition-colors w-full sm:w-auto"
+              type="button"
+              onClick={handleAddWidget}
+            >
               Add Widget
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </form>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

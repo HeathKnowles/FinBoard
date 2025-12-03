@@ -13,59 +13,79 @@ const FieldsSelector: FC<FieldsSelectorProps> = ({ fields = [], onChange }) => {
 
   useEffect(() => {
     setAvailableFields(fields);
-    setSelectedFields([]); 
+    setSelectedFields([]);
   }, [fields]);
 
   const addField = (field: string) => {
     setSelectedFields((prev) => {
       const updated = [...prev, field];
-      onChange?.(updated);
+      setTimeout(() => onChange?.(updated), 0);
       return updated;
     });
-
     setAvailableFields((prev) => prev.filter((f) => f !== field));
   };
 
+  const removeField = (field: string) => {
+    setSelectedFields((prev) => prev.filter((f) => f !== field));
+    setAvailableFields((prev) => [...prev, field].sort());
+    onChange?.(selectedFields.filter((f) => f !== field));
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-4 mt-4">
-      <div className="border p-3 rounded-lg">
-        <Label className="text-sm font-medium">Available Fields</Label>
-
-        <div className="mt-2 flex flex-col gap-2">
-          {availableFields.length === 0 && (
-            <p className="text-xs text-muted-foreground">No fields left</p>
-          )}
-
-          {availableFields.map((field) => (
-            <div
-              key={field}
-              className="flex items-center justify-between px-2 py-1 rounded bg-muted"
-            >
-              <span>{field}</span>
-              <button
-                onClick={() => addField(field)}
-                className="px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/80"
+    <div>
+      <Label className="text-sm font-medium text-gray-200 block mb-4">Select Fields</Label>
+      {/* <CHANGE> Responsive grid that stacks on mobile and shows 2 columns on tablet+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+        {/* AVAILABLE FIELDS */}
+        <div className="border border-gray-600 rounded-lg p-4 bg-gray-900">
+          <Label className="text-sm font-semibold text-gray-300 block mb-3">
+            Available Fields
+          </Label>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {availableFields.length === 0 && (
+              <p className="text-xs text-gray-500 italic">No fields left</p>
+            )}
+            {availableFields.map((field) => (
+              <div
+                key={field}
+                className="flex items-center justify-between px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-green-500 transition-colors group"
               >
-                +
-              </button>
-            </div>
-          ))}
+                <span className="text-sm text-gray-200 truncate">{field}</span>
+                <button
+                  onClick={() => addField(field)}
+                  className="ml-2 px-2.5 py-1 rounded-md bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                >
+                  +
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="border p-3 rounded-lg">
-        <Label className="text-sm font-medium">Selected Fields</Label>
-
-        <div className="mt-2 flex flex-col gap-2">
-          {selectedFields.length === 0 && (
-            <p className="text-xs text-muted-foreground">No fields selected</p>
-          )}
-
-          {selectedFields.map((field) => (
-            <div key={field} className="px-2 py-1 rounded bg-primary/10">
-              {field}
-            </div>
-          ))}
+        {/* SELECTED FIELDS */}
+        <div className="border border-gray-600 rounded-lg p-4 bg-gray-900">
+          <Label className="text-sm font-semibold text-gray-300 block mb-3">
+            Selected Fields
+          </Label>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {selectedFields.length === 0 && (
+              <p className="text-xs text-gray-500 italic">No fields selected</p>
+            )}
+            {selectedFields.map((field) => (
+              <div
+                key={field}
+                className="flex items-center justify-between px-3 py-2 rounded-md bg-green-900/30 border border-green-700/50 hover:border-green-500 transition-colors group"
+              >
+                <span className="text-sm text-green-100 truncate">{field}</span>
+                <button
+                  onClick={() => removeField(field)}
+                  className="ml-2 px-2.5 py-1 rounded-md bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
