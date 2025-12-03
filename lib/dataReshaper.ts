@@ -7,9 +7,26 @@ export function dataReshaper(input: any): string[] {
   try {
     if (input == null) return [];
 
+    if (Array.isArray(input)) {
+      if (input.length === 0) return [];
+
+      if (input.some((item) => typeof item !== "object" || item === null)) {
+        return [];
+      }
+
+      const flat = flatter(input[0] as object);
+
+      return Object.keys(flat).filter(
+        (key) => isNaN(Number(key)) && !key.startsWith("_")
+      );
+    }
+
     if (typeof input === "object") {
       const flat = flatter(input);
-      return Object.keys(flat);
+
+      return Object.keys(flat).filter(
+        (key) => isNaN(Number(key)) && !key.startsWith("_")
+      );
     }
 
     if (typeof input === "string") {
@@ -18,25 +35,21 @@ export function dataReshaper(input: any): string[] {
       if (trimmed.startsWith("<") && trimmed.endsWith(">")) {
         const xmlJson = xmlParser.parse(trimmed);
         const flat = flatter(xmlJson);
-        return Object.keys(flat);
+        return Object.keys(flat).filter(
+          (key) => isNaN(Number(key)) && !key.startsWith("_")
+        );
       }
 
       try {
         const json = JSON.parse(trimmed);
-        if (typeof json === "object" && json !== null) {
-          const flat = flatter(json);
-          return Object.keys(flat);
-        }
-      } catch {
-        // Not JSON — ignore
-      }
 
-      return ["text"];
+        return dataReshaper(json); 
+      } catch {
+        return ["text"];
+      }
     }
 
-    // number, boolean, etc.
     return ["value"];
-
   } catch {
     return [];
   }
