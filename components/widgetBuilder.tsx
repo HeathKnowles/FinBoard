@@ -280,11 +280,12 @@ const WidgetBuilder = memo(function WidgetBuilder() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="bg-green-500 hover:bg-green-600 text-white font-medium transition-colors">
-          + Add Widget
+        <Button className="bg-green-500 hover:bg-green-600 text-white font-medium transition-colors text-sm sm:text-base px-2 sm:px-4 py-2 whitespace-nowrap">
+          <span className="hidden sm:inline">+ Add Widget</span>
+          <span className="sm:hidden">+ Add</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full max-w-4xl bg-gray-800 text-white border-gray-700 rounded-lg shadow-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-4xl bg-gray-800 text-white border-gray-700 rounded-lg shadow-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto z-100">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-xl sm:text-2xl font-bold">Add New Widget</DialogTitle>
         </DialogHeader>
@@ -363,7 +364,7 @@ const WidgetBuilder = memo(function WidgetBuilder() {
           )}
         </div>
 
-        <Separator className="bg-gray-700 my-4" />
+        <Separator className="bg-gray-600 my-4" />
         <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
           <DialogClose asChild>
             <Button className="bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors w-full sm:w-auto">

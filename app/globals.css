@@ -148,4 +148,82 @@
     -moz-user-select: none !important;
     -ms-user-select: none !important;
   }
+
+  /* Grid Layout Responsive Styles */
+  .react-grid-layout {
+    width: 100% !important;
+    position: relative;
+  }
+
+  .react-grid-item {
+    transition: all 200ms ease;
+    transition-property: left, top, width, height;
+  }
+
+  .react-grid-item.cssTransforms {
+    transition-property: transform, width, height;
+  }
+
+  .react-grid-item > .react-resizable-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    bottom: 0;
+    right: 0;
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNiIgaGVpZ2h0PSI2IiB2aWV3Qm94PSIwIDAgNiA2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9IiM0YjViNjkiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PHBhdGggZD0iTTYgNkgwVjBsNiA2eiIvPjwvZz48L3N2Zz4=');
+    background-position: bottom right;
+    padding: 0 3px 3px 0;
+    background-repeat: no-repeat;
+    background-origin: content-box;
+    box-sizing: border-box;
+    cursor: se-resize;
+  }
+
+  /* Ensure no horizontal overflow on smaller screens */
+  @media (max-width: 768px) {
+    .react-grid-layout {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+
+  /* Ensure body and html have dark background */
+  html, body {
+    background-color: #030712 !important; /* bg-gray-950 */
+    min-height: 100vh !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden;
+  }
+
+  /* Ensure root container covers full viewport */
+  #__next, [data-reactroot] {
+    background-color: #030712 !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+  }
+
+  /* Navbar fixes */
+  nav {
+    width: 100% !important;
+    min-height: 72px !important;
+    flex-shrink: 0 !important;
+    background-color: #1f2937 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+  }
+
+  /* Ensure navbar background extends full width */
+  nav > div {
+    width: 100% !important;
+    background-color: #1f2937 !important;
+  }
+
+  /* Grid layout container fixes */
+  .layout {
+    min-height: calc(100vh - 120px) !important;
+    background-color: #030712 !important;
+  }
 }

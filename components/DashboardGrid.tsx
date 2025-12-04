@@ -19,7 +19,7 @@ const WidgetRenderer = dynamic(() => import("@/components/widgetRenderer"), {
   ssr: false,
 });
 
-const GridLayout = dynamic(() => import("react-grid-layout"), {
+const GridLayout = dynamic(() => import("react-grid-layout").then(mod => ({ default: mod.Responsive })), {
   loading: () => <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">Loading layout...</div>,
   ssr: false,
 });
@@ -60,11 +60,11 @@ const WidgetHeader = memo(function WidgetHeader({
   isConnected: boolean;
 }) {
   return (
-    <div className="widget-header p-2 bg-gray-800 flex justify-between items-center cursor-move select-none" style={{ position: 'relative' }}>
-      <span className="font-semibold">{widget.name}</span>
+    <div className="widget-header p-1 sm:p-2 bg-gray-800 flex justify-between items-center cursor-move select-none" style={{ position: 'relative' }}>
+      <span className="font-semibold text-sm sm:text-base truncate flex-1 mr-2">{widget.name}</span>
 
       <div 
-        className="flex items-center gap-3 react-grid-layout-no-drag" 
+        className="flex items-center gap-1 sm:gap-2 react-grid-layout-no-drag shrink-0" 
         style={{ 
           pointerEvents: 'auto', 
           position: 'relative', 
@@ -74,11 +74,11 @@ const WidgetHeader = memo(function WidgetHeader({
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
-        {/* Real-time status indicator */}
+        {/* Real-time status indicator - hidden on very small screens */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <span className={`text-xs px-1.5 py-0.5 rounded ${
+              <span className={`hidden xs:inline-block text-xs px-1 sm:px-1.5 py-0.5 rounded ${
                 isConnected
                   ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50'
                   : 'bg-gray-900/30 text-gray-400 border border-gray-700/50'
@@ -96,7 +96,7 @@ const WidgetHeader = memo(function WidgetHeader({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                <span className={`hidden sm:inline-block text-xs px-1 sm:px-1.5 py-0.5 rounded ${
                   widget.fromFallback 
                     ? 'bg-orange-900/30 text-orange-400 border border-orange-700/50' 
                     : widget.stale 
@@ -123,7 +123,7 @@ const WidgetHeader = memo(function WidgetHeader({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <span className="text-xs text-gray-400">
+              <span className="hidden sm:inline-block text-xs text-gray-400">
                 {timeAgo(widget.lastUpdated)}
               </span>
             </TooltipTrigger>
@@ -145,7 +145,7 @@ const WidgetHeader = memo(function WidgetHeader({
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
-                className="text-xs px-2 pointer-events-auto select-none"
+                className="text-xs px-1 sm:px-2 h-6 sm:h-8 pointer-events-auto select-none"
                 style={{ touchAction: 'manipulation' }}
               >
                 🔄
@@ -166,7 +166,7 @@ const WidgetHeader = memo(function WidgetHeader({
           }}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="pointer-events-auto select-none"
+          className="pointer-events-auto select-none px-1 sm:px-2 h-6 sm:h-8 hidden sm:inline-flex"
           style={{ touchAction: 'manipulation' }}
         >
           ⚙
@@ -181,7 +181,7 @@ const WidgetHeader = memo(function WidgetHeader({
           }}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="pointer-events-auto select-none min-w-8 h-8"
+          className="pointer-events-auto select-none min-w-6 sm:min-w-8 h-6 sm:h-8 px-1 sm:px-2"
           style={{ 
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent'
@@ -210,8 +210,65 @@ const DashboardGrid = memo(function DashboardGrid() {
       y: Math.floor(index / 3) * 4,
       w: 4,
       h: 5,
-    })), [widgets]
-  );
+    })), [widgets]);
+
+  const breakpoints = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+  const cols = { lg: 12, md: 9, sm: 6, xs: 3, xxs: 2 };
+  
+  const layouts = useMemo(() => {
+    const baseLayout = widgets.map((w, index) => {
+      return {
+        // Large screens: 3 columns (4 units each = 12 total)
+        lg: {
+          i: w.id,
+          x: (index % 3) * 4,
+          y: Math.floor(index / 3) * 4,
+          w: 4,
+          h: 4,
+        },
+        // Medium screens: 3 columns (3 units each = 9 total)  
+        md: {
+          i: w.id,
+          x: (index % 3) * 3,
+          y: Math.floor(index / 3) * 4,
+          w: 3,
+          h: 4,
+        },
+        // Small screens: 2 columns (3 units each = 6 total)
+        sm: {
+          i: w.id,
+          x: (index % 2) * 3,
+          y: Math.floor(index / 2) * 4,
+          w: 3,
+          h: 4,
+        },
+        // Extra small screens: 1 column (3 units = full width)
+        xs: {
+          i: w.id,
+          x: 0,
+          y: index * 4,
+          w: 3,
+          h: 4,
+        },
+        // Extra extra small: 1 column (2 units = full width)
+        xxs: {
+          i: w.id,
+          x: 0,
+          y: index * 4,
+          w: 2,
+          h: 4,
+        }
+      };
+    });
+    
+    return {
+      lg: baseLayout.map(l => l.lg),
+      md: baseLayout.map(l => l.md),
+      sm: baseLayout.map(l => l.sm),
+      xs: baseLayout.map(l => l.xs),
+      xxs: baseLayout.map(l => l.xxs),
+    };
+  }, [widgets]);
 
   const openConfig = useCallback((widget: any) => {
     startTransition(() => {
@@ -265,38 +322,42 @@ const DashboardGrid = memo(function DashboardGrid() {
 
   if (widgets.length === 0) {
     return (
-      <div className="p-4 text-center">
-        <div className="text-gray-400 text-lg mb-4">No widgets yet</div>
-        <div className="text-sm text-gray-500">Add your first widget to get started</div>
+      <div className="p-4 sm:p-8 text-center">
+        <div className="text-gray-400 text-base sm:text-lg mb-2 sm:mb-4">No widgets yet</div>
+        <div className="text-xs sm:text-sm text-gray-500">Add your first widget to get started</div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="p-4">
+      <div className="w-full h-full bg-gray-950 p-2 sm:p-4">
         <Suspense fallback={
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: widgets.length }).map((_, i) => (
-              <div key={i} className="h-64 bg-gray-800 rounded-lg animate-pulse" />
+              <div key={i} className="h-48 sm:h-64 bg-gray-800 rounded-lg animate-pulse" />
             ))}
           </div>
         }>
           <GridLayout
-            className="layout"
-            layout={layout}
-            cols={12}
-            rowHeight={30}
-            width={1200}
+            className="layout w-full"
+            layouts={layouts}
+            breakpoints={breakpoints}
+            cols={cols}
+            rowHeight={60}
+            margin={[8, 8]}
+            containerPadding={[8, 8]}
             draggableHandle=".widget-header"
             useCSSTransforms={true} 
-            preventCollision={true}
+            preventCollision={false}
             compactType="vertical"
+            isResizable={true}
+            isDraggable={true}
           >
             {widgets.map((widget) => (
               <div
                 key={widget.id}
-                className="border rounded bg-gray-900 text-white overflow-hidden will-change-transform relative" // Hardware acceleration + relative for real-time indicator
+                className="border rounded bg-gray-900 text-white overflow-hidden will-change-transform relative shadow-lg" // Hardware acceleration + relative for real-time indicator
               >
                 <RealTimeWidgetWrapper widget={widget}>
                   <WidgetHeader
@@ -307,10 +368,10 @@ const DashboardGrid = memo(function DashboardGrid() {
                     isConnected={isConnected}
                   />
 
-                  <div className="p-3">
+                  <div className="p-2 sm:p-3">
                     <Suspense fallback={
-                      <div className="h-32 bg-gray-800 rounded animate-pulse flex items-center justify-center">
-                        <div className="text-gray-400 text-sm">Loading widget data...</div>
+                      <div className="h-24 sm:h-32 bg-gray-800 rounded animate-pulse flex items-center justify-center">
+                        <div className="text-gray-400 text-xs sm:text-sm">Loading widget data...</div>
                       </div>
                     }>
                       <WidgetRenderer

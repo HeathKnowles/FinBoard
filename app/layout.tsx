@@ -36,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 min-h-screen w-full`}
       >
         {/* Performance monitoring script */}
         <Script
@@ -53,12 +53,14 @@ export default function RootLayout({
         />
         
         <Providers>
-          <div suppressHydrationWarning>
-            <Navbar />
+          <div className="min-h-screen w-full bg-gray-950 flex flex-col">
+            <div suppressHydrationWarning className="w-full">
+              <Navbar />
+            </div>
+            <main className="bg-gray-950 w-full flex-1">
+              {children}
+            </main>
           </div>
-          <main>
-            {children}
-          </main>
         </Providers>
 
         {/* Initialize performance monitoring */}
