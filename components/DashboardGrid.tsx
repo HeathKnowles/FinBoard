@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import WidgetRenderer from "@/components/widgetRenderer";
 import GridLayout from "react-grid-layout";
-import { removeWidget, updateWidgetConfig } from "@/store/widgetsSlice";
+import { removeWidget, updateWidgetConfig, updateWidgetData } from "@/store/widgetsSlice";
 import DisplayModeBuilder from "@/components/displayModeBuilder";
+import { cacheManager } from "@/lib/cacheManager";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,25 @@ export default function DashboardGrid() {
     setEditingWidget(null);
   }
 
+  async function forceRefreshWidget(widget: any) {
+    try {
+      const result = await cacheManager.forceRefreshWidget(widget.apiUrl, widget.refresh);
+      
+      const preparedData = Array.isArray(result.raw) ? result.raw : [result.raw];
+      
+      dispatch(updateWidgetData({
+        id: widget.id,
+        data: preparedData,
+        flattened: result.flattened,
+        cached: result.cached,
+        stale: result.stale,
+        fromFallback: result.fromFallback,
+      }));
+    } catch (error) {
+      console.error('Force refresh failed:', error);
+    }
+  }
+
   return (
     <>
       <div className="p-4">
@@ -70,6 +90,35 @@ export default function DashboardGrid() {
                 <span className="font-semibold">{widget.name}</span>
 
                 <div className="flex items-center gap-3">
+                  {/* Cache Status Indicator */}
+                  {(widget.cached || widget.stale || widget.fromFallback) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            widget.fromFallback 
+                              ? 'bg-orange-900/30 text-orange-400 border border-orange-700/50' 
+                              : widget.stale 
+                              ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50'
+                              : 'bg-green-900/30 text-green-400 border border-green-700/50'
+                          }`}>
+                            {widget.fromFallback ? '⚠' : widget.stale ? '📄' : '⚡'}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                          {widget.fromFallback 
+                            ? 'Using fallback data (API unavailable)' 
+                            : widget.stale 
+                            ? 'Data is stale (cached)' 
+                            : widget.cached
+                            ? 'Fresh cached data'
+                            : 'Live data'
+                          }
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
@@ -82,6 +131,24 @@ export default function DashboardGrid() {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => forceRefreshWidget(widget)}
+                          className="text-xs px-2"
+                        >
+                          🔄
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">
+                        Force refresh (bypass cache)
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
                   <Button
                     size="sm"
                     variant="secondary"

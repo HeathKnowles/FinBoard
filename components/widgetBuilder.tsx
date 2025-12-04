@@ -17,9 +17,125 @@ import { Separator } from "@/components/ui/separator";
 import FieldsSelector from "./fieldSelector";
 import DisplayModeBuilder from "./displayModeBuilder";
 import { humanizeKey } from "@/lib/autolabeller";
+import { analyzeApiResponse, type AnalysisResult } from "@/lib/autoDetectDisplayMode";
 import { useAppDispatch } from "@/store/hooks";
 import { addWidget } from "@/store/widgetsSlice";
 import type { DisplayConfig } from "@/types/display";
+
+// Helper function to select fields based on analysis
+function selectFieldsBasedOnAnalysis(analysis: AnalysisResult, allKeys: string[]): string[] {
+  const { widgetType, tableColumns, chartFields } = analysis;
+
+  if (widgetType === "table" && tableColumns.length > 0) {
+    return tableColumns;
+  }
+
+  if ((widgetType === "line-chart" || widgetType === "area-chart" || widgetType === "candle-chart") && chartFields.length > 0) {
+    return chartFields;
+  }
+
+  // For watchlist/gainers cards, try to find symbol, price, change fields
+  if (widgetType === "watchlist" || widgetType === "gainers") {
+    const symbolField = allKeys.find(k => k.toLowerCase().includes('symbol') || k.toLowerCase().includes('ticker')) ?? allKeys[0];
+    const priceField = allKeys.find(k => k.toLowerCase().includes('price') || k.toLowerCase() === 'c' || k.toLowerCase() === 'close') ?? allKeys[1];
+    const changeField = allKeys.find(k => k.toLowerCase().includes('change') || k.toLowerCase().includes('percent') || k.toLowerCase().includes('dp')) ?? allKeys[2];
+    return [symbolField, priceField, changeField].filter(Boolean);
+  }
+
+  // For performance/financial cards, return all available keys
+  if (widgetType === "performance" || widgetType === "financial") {
+    return allKeys;
+  }
+
+  // Default: return all keys
+  return allKeys;
+}
+
+// Helper function to generate display config based on analysis
+function generateDisplayConfig(analysis: AnalysisResult, selectedFields: string[]): DisplayConfig | null {
+  const { widgetType, chartFields, intervals } = analysis;
+
+  // Table widget
+  if (widgetType === "table") {
+    return {
+      mode: "table",
+      table: {
+        fields: selectedFields,
+        searchable: true,
+        paginated: true,
+      },
+    };
+  }
+
+  // Card widgets
+  if (widgetType === "watchlist" || widgetType === "gainers" || widgetType === "performance" || widgetType === "financial") {
+    return {
+      mode: "cards",
+      cards: {
+        type: widgetType,
+        fields: selectedFields,
+      },
+    };
+  }
+
+  // Chart widgets
+  if (widgetType === "line-chart") {
+    const xField = chartFields[0] || selectedFields[0] || "";
+    const yField = chartFields[1] || selectedFields[1] || selectedFields[0] || "";
+    const interval = (intervals === "1D" || intervals === "1W" || intervals === "1M") ? intervals : "1D";
+    return {
+      mode: "chart",
+      chart: {
+        type: "line",
+        xField,
+        yField,
+        interval,
+      },
+    };
+  }
+
+  if (widgetType === "area-chart") {
+    const xField = chartFields[0] || selectedFields[0] || "";
+    const yField = chartFields[1] || selectedFields[1] || selectedFields[0] || "";
+    const interval = (intervals === "1D" || intervals === "1W" || intervals === "1M") ? intervals : "1D";
+    return {
+      mode: "chart",
+      chart: {
+        type: "area",
+        xField,
+        yField,
+        interval,
+      },
+    };
+  }
+
+  if (widgetType === "candle-chart") {
+    const dateField = chartFields.find((f) => f.toLowerCase().includes("date") || f.toLowerCase().includes("time") || f.toLowerCase() === "t") || chartFields[0] || selectedFields[0] || "";
+    const interval = (intervals === "1D" || intervals === "1W" || intervals === "1M") ? intervals : "1D";
+    // Find OHLC fields from selected fields or chartFields
+    const allFields = [...new Set([...selectedFields, ...chartFields])];
+    const openField = allFields.find(f => f.toLowerCase() === 'o' || f.toLowerCase() === 'open') ?? "open";
+    const highField = allFields.find(f => f.toLowerCase() === 'h' || f.toLowerCase() === 'high') ?? "high";
+    const lowField = allFields.find(f => f.toLowerCase() === 'l' || f.toLowerCase() === 'low') ?? "low";
+    const closeField = allFields.find(f => f.toLowerCase() === 'c' || f.toLowerCase() === 'close') ?? "close";
+    
+    return {
+      mode: "chart",
+      chart: {
+        type: "candle",
+        xField: dateField,
+        yField: closeField,
+        interval,
+        openField,
+        highField,
+        lowField,
+        closeField,
+      },
+    };
+  }
+
+  return null;
+}
 
 export function WidgetBuilder() {
   const dispatch = useAppDispatch();
@@ -40,6 +156,7 @@ export function WidgetBuilder() {
 
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig | null>(null);
+  const [suggestedWidget, setSuggestedWidget] = useState<string | null>(null);
 
   async function handleTest() {
     if (!apiUrl.trim()) {
@@ -56,7 +173,11 @@ export function WidgetBuilder() {
       const res = await fetch("/api/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: apiUrl }),
+        body: JSON.stringify({ 
+          url: apiUrl, 
+          refreshInterval: refresh,
+          maxAge: refresh * 60, // Set maxAge to 60x refresh interval
+        }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -64,6 +185,10 @@ export function WidgetBuilder() {
       setRawData(json.raw);
       const keys = json.flattened.filter((key: string) => key && isNaN(Number(key)));
       setFlattenedData(keys);
+
+      // Analyze API response to detect widget type
+      const analysis = analyzeApiResponse(json.raw);
+      setSuggestedWidget(analysis.widgetType);
 
       // Build labeled fields with a sample value from the first row
       const firstRow = Array.isArray(json.raw) ? json.raw[0] : json.raw;
@@ -81,6 +206,17 @@ export function WidgetBuilder() {
         };
       });
       setLabeledFields(labeled);
+
+      // Auto-select fields based on widget type and analysis
+      const autoSelectedFields = selectFieldsBasedOnAnalysis(analysis, keys);
+      setSelectedFields(autoSelectedFields);
+
+      // Auto-generate display config based on analysis
+      const autoConfig = generateDisplayConfig(analysis, autoSelectedFields);
+      if (autoConfig) {
+        setDisplayConfig(autoConfig);
+      }
+
       setTestSuccess(true);
     } catch (error: any) {
       alert("Test failed: " + error.message);
@@ -184,6 +320,15 @@ export function WidgetBuilder() {
             <>
               <Separator className="bg-gray-700 my-4" />
 
+              {/* SUGGESTED WIDGET TYPE */}
+              {suggestedWidget && (
+                <div className="p-3 rounded-lg bg-green-900/20 border border-green-700/50">
+                  <Label className="text-sm font-medium text-green-400">
+                    💡 Suggested Widget: <span className="font-bold capitalize">{suggestedWidget.replace('-', ' ')}</span>
+                  </Label>
+                </div>
+              )}
+
               {/* STEP 1 – SELECT FIELDS */}
               <FieldsSelector
                 fields={labeledFields}
@@ -200,6 +345,7 @@ export function WidgetBuilder() {
                   <Label className="text-sm font-medium text-gray-200 block">Display Mode</Label>
                   <DisplayModeBuilder
                     fields={labeledFields.filter((f) => selectedFields.includes(f.key))}
+                    value={displayConfig}
                     onChange={(cfg) => setDisplayConfig(cfg)}
                   />
                 </>

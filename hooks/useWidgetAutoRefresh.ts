@@ -21,7 +21,11 @@ export function useWidgetAutoRefresh() {
           const res = await fetch("/api/fetch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: widget.apiUrl }),
+            body: JSON.stringify({ 
+              url: widget.apiUrl,
+              refreshInterval: widget.refresh,
+              maxAge: widget.refresh * 60, // Keep data valid for 60x refresh interval
+            }),
           });
 
           const json = await res.json();
@@ -36,6 +40,9 @@ export function useWidgetAutoRefresh() {
               id: widget.id,
               data: preparedData,
               flattened: json.flattened,
+              cached: json.cached,
+              stale: json.stale,
+              fromFallback: json.fromFallback,
             })
           );
         } catch (err) {

@@ -10,6 +10,9 @@ export interface Widget {
   data: any[];            
   flattened?: any;     
   lastUpdated: number;
+  cached?: boolean;
+  stale?: boolean;
+  fromFallback?: boolean;
 }
 
 interface WidgetsState {
@@ -35,13 +38,23 @@ export const widgetsSlice = createSlice({
 
     updateWidgetData: (
       state,
-      action: PayloadAction<{ id: string; data: any[]; flattened: any }>
+      action: PayloadAction<{ 
+        id: string; 
+        data: any[]; 
+        flattened: any;
+        cached?: boolean;
+        stale?: boolean;
+        fromFallback?: boolean;
+      }>
     ) => {
       const widget = state.widgets.find((w) => w.id === action.payload.id);
       if (widget) {
         widget.data = action.payload.data;
         widget.flattened = action.payload.flattened;
         widget.lastUpdated = Date.now();
+        widget.cached = action.payload.cached;
+        widget.stale = action.payload.stale;
+        widget.fromFallback = action.payload.fromFallback;
       }
     },
 

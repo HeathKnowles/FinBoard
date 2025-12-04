@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
@@ -17,12 +17,21 @@ type FieldInfo = { key: string; label?: string; sample?: any };
 
 export default function DisplayModeBuilder({
   fields,
+  value,
   onChange,
 }: {
   fields: Array<string | FieldInfo>;
+  value?: DisplayConfig | null;
   onChange: (config: DisplayConfig) => void;
 }) {
-  const [mode, setMode] = useState<DisplayConfig["mode"]>("table");
+  const [mode, setMode] = useState<DisplayConfig["mode"]>(value?.mode ?? "table");
+
+  // Sync with external value changes
+  useEffect(() => {
+    if (value?.mode && value.mode !== mode) {
+      setMode(value.mode);
+    }
+  }, [value?.mode]);
 
   const update = (partial: Partial<DisplayConfig>) =>
     onChange({
@@ -143,6 +152,7 @@ export default function DisplayModeBuilder({
         <div className="space-y-4">
           <Label className="text-sm font-semibold text-gray-200">Cards View Type</Label>
           <Select
+            value={value?.mode === "cards" ? value.cards?.type : undefined}
             onValueChange={(value) =>
               update({
                 cards: {
@@ -178,6 +188,7 @@ export default function DisplayModeBuilder({
         <div className="space-y-4">
           <Label className="text-sm font-semibold text-gray-200">Chart Type</Label>
           <Select
+            value={value?.mode === "chart" ? value.chart?.type : undefined}
             onValueChange={(value) =>
               update({
                 chart: {
