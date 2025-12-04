@@ -37,18 +37,27 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+import { useRealTimeConnection } from "@/hooks/useRealTimeWidget";
+
 const getCacheManager = () => import("@/lib/cacheManager").then(mod => mod.cacheManager);
+
+const RealTimeWidgetWrapper = dynamic(() => import("@/components/realTimeWidgetWrapper"), {
+  loading: () => <></>,
+  ssr: false,
+});
 
 const WidgetHeader = memo(function WidgetHeader({ 
   widget, 
   onConfig, 
   onRefresh, 
-  onRemove 
+  onRemove,
+  isConnected
 }: { 
   widget: any; 
   onConfig: () => void; 
   onRefresh: () => void; 
   onRemove: () => void; 
+  isConnected: boolean;
 }) {
   return (
     <div className="widget-header p-2 bg-gray-800 flex justify-between items-center cursor-move select-none" style={{ position: 'relative' }}>
@@ -65,6 +74,24 @@ const WidgetHeader = memo(function WidgetHeader({
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
+        {/* Real-time status indicator */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                isConnected
+                  ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50'
+                  : 'bg-gray-900/30 text-gray-400 border border-gray-700/50'
+              }`}>
+                {isConnected ? '🔴' : '⚫'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">
+              {isConnected ? 'Real-time updates active' : 'Real-time updates offline'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         {(widget.cached || widget.stale || widget.fromFallback) && (
           <TooltipProvider>
             <Tooltip>
@@ -171,6 +198,7 @@ const WidgetHeader = memo(function WidgetHeader({
 const DashboardGrid = memo(function DashboardGrid() {
   const dispatch = useAppDispatch();
   const widgets = useAppSelector((state) => state.widgets.widgets);
+  const { isConnected } = useRealTimeConnection();
 
   const [editingWidget, setEditingWidget] = useState<any>(null);
   const [tempConfig, setTempConfig] = useState<any>(null);
@@ -268,27 +296,30 @@ const DashboardGrid = memo(function DashboardGrid() {
             {widgets.map((widget) => (
               <div
                 key={widget.id}
-                className="border rounded bg-gray-900 text-white overflow-hidden will-change-transform" // Hardware acceleration
+                className="border rounded bg-gray-900 text-white overflow-hidden will-change-transform relative" // Hardware acceleration + relative for real-time indicator
               >
-                <WidgetHeader
-                  widget={widget}
-                  onConfig={() => openConfig(widget)}
-                  onRefresh={() => forceRefreshWidget(widget)}
-                  onRemove={() => removeWidgetHandler(widget.id)}
-                />
+                <RealTimeWidgetWrapper widget={widget}>
+                  <WidgetHeader
+                    widget={widget}
+                    onConfig={() => openConfig(widget)}
+                    onRefresh={() => forceRefreshWidget(widget)}
+                    onRemove={() => removeWidgetHandler(widget.id)}
+                    isConnected={isConnected}
+                  />
 
-                <div className="p-3">
-                  <Suspense fallback={
-                    <div className="h-32 bg-gray-800 rounded animate-pulse flex items-center justify-center">
-                      <div className="text-gray-400 text-sm">Loading widget data...</div>
-                    </div>
-                  }>
-                    <WidgetRenderer
-                      config={widget.config}
-                      data={widget.data}
-                    />
-                  </Suspense>
-                </div>
+                  <div className="p-3">
+                    <Suspense fallback={
+                      <div className="h-32 bg-gray-800 rounded animate-pulse flex items-center justify-center">
+                        <div className="text-gray-400 text-sm">Loading widget data...</div>
+                      </div>
+                    }>
+                      <WidgetRenderer
+                        config={widget.config}
+                        data={widget.data}
+                      />
+                    </Suspense>
+                  </div>
+                </RealTimeWidgetWrapper>
               </div>
             ))}
           </GridLayout>
