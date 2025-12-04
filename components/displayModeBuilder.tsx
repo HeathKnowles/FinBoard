@@ -13,11 +13,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import type { DisplayConfig } from "@/types/display";
 
+type FieldInfo = { key: string; label?: string; sample?: any };
+
 export default function DisplayModeBuilder({
   fields,
   onChange,
 }: {
-  fields: string[];
+  fields: Array<string | FieldInfo>;
   onChange: (config: DisplayConfig) => void;
 }) {
   const [mode, setMode] = useState<DisplayConfig["mode"]>("table");
@@ -28,12 +30,17 @@ export default function DisplayModeBuilder({
       ...partial,
     } as DisplayConfig);
 
+  const normalizedFields: FieldInfo[] = (fields || []).map((f) =>
+    typeof f === "string" ? { key: f, label: f } : f
+  );
+  const fieldKeys = normalizedFields.map((f) => f.key);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* MODE TOGGLE */}
       <div className="space-y-3">
         <Label className="text-sm font-medium text-gray-200">Display Mode</Label>
-        {/* <CHANGE> Responsive toggle group that wraps on mobile */}
+        {/* Responsive toggle group that wraps on mobile */}
         <ToggleGroup
           type="single"
           variant="outline"
@@ -82,9 +89,9 @@ export default function DisplayModeBuilder({
                 <SelectValue placeholder="Select main field" />
               </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600">
-                {fields.map((f) => (
-                  <SelectItem key={f} value={f} className="text-white">
-                    {f}
+                {normalizedFields.map((f) => (
+                  <SelectItem key={f.key} value={f.key} className="text-white">
+                    {f.label ?? f.key}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -101,7 +108,7 @@ export default function DisplayModeBuilder({
               onCheckedChange={(checked) =>
                 update({
                   table: {
-                    fields,
+                    fields: fieldKeys,
                     searchable: checked,
                     paginated: true,
                   },
@@ -120,7 +127,7 @@ export default function DisplayModeBuilder({
               onCheckedChange={(checked) =>
                 update({
                   table: {
-                    fields,
+                    fields: fieldKeys,
                     searchable: true,
                     paginated: checked,
                   },
@@ -140,7 +147,7 @@ export default function DisplayModeBuilder({
               update({
                 cards: {
                   type: value as any,
-                  fields,
+                  fields: fieldKeys,
                 },
               })
             }
@@ -175,8 +182,8 @@ export default function DisplayModeBuilder({
               update({
                 chart: {
                   type: value as any,
-                  xField: fields[0],
-                  yField: fields[1] || fields[0],
+                  xField: fieldKeys[0],
+                  yField: fieldKeys[1] || fieldKeys[0],
                   interval: "1D",
                 },
               })
@@ -210,7 +217,7 @@ export default function DisplayModeBuilder({
                   chart: {
                     type: "line",
                     xField: v,
-                    yField: fields[0],
+                    yField: fieldKeys[0],
                     interval: "1D",
                   },
                 })
@@ -220,9 +227,9 @@ export default function DisplayModeBuilder({
                 <SelectValue placeholder="Select X field" />
               </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600">
-                {fields.map((f) => (
-                  <SelectItem key={f} value={f} className="text-white">
-                    {f}
+                {normalizedFields.map((f) => (
+                  <SelectItem key={f.key} value={f.key} className="text-white">
+                    {f.label ?? f.key}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -237,7 +244,7 @@ export default function DisplayModeBuilder({
                 update({
                   chart: {
                     type: "line",
-                    xField: fields[0],
+                    xField: fieldKeys[0],
                     yField: v,
                     interval: "1D",
                   },
@@ -248,9 +255,9 @@ export default function DisplayModeBuilder({
                 <SelectValue placeholder="Select Y field" />
               </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600">
-                {fields.map((f) => (
-                  <SelectItem key={f} value={f} className="text-white">
-                    {f}
+                {normalizedFields.map((f) => (
+                  <SelectItem key={f.key} value={f.key} className="text-white">
+                    {f.label ?? f.key}
                   </SelectItem>
                 ))}
               </SelectContent>

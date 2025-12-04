@@ -16,6 +16,7 @@ import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import FieldsSelector from "./fieldSelector";
 import DisplayModeBuilder from "./displayModeBuilder";
+import { humanizeKey } from "@/lib/autolabeller";
 import { useAppDispatch } from "@/store/hooks";
 import { addWidget } from "@/store/widgetsSlice";
 import type { DisplayConfig } from "@/types/display";
@@ -31,6 +32,11 @@ export function WidgetBuilder() {
   const [testSuccess, setTestSuccess] = useState(false);
   const [rawData, setRawData] = useState<any>(null);
   const [flattenedData, setFlattenedData] = useState<string[]>([]);
+  const [labeledFields, setLabeledFields] = useState<{
+    key: string;
+    label: string;
+    sample?: any;
+  }[]>([]);
 
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig | null>(null);
@@ -56,11 +62,25 @@ export function WidgetBuilder() {
       if (!json.success) throw new Error(json.error);
 
       setRawData(json.raw);
-      setFlattenedData(
-        json.flattened.filter(
-          (key: string) => key && isNaN(Number(key))
-        )
-      );
+      const keys = json.flattened.filter((key: string) => key && isNaN(Number(key)));
+      setFlattenedData(keys);
+
+      // Build labeled fields with a sample value from the first row
+      const firstRow = Array.isArray(json.raw) ? json.raw[0] : json.raw;
+      const labeled = keys.map((k: string) => {
+        // support nested keys using dot notation
+        const get = (obj: any, path: string) => {
+          if (!obj) return undefined;
+          return path.split(".").reduce((acc: any, part: string) => (acc == null ? undefined : acc[part]), obj);
+        };
+
+        return {
+          key: k,
+          label: humanizeKey(k),
+          sample: get(firstRow, k),
+        };
+      });
+      setLabeledFields(labeled);
       setTestSuccess(true);
     } catch (error: any) {
       alert("Test failed: " + error.message);
@@ -105,7 +125,7 @@ export function WidgetBuilder() {
           + Add Widget
         </Button>
       </DialogTrigger>
-      {/* <CHANGE> Improved responsive dialog with better max-width handling */}
+      {/* Improved responsive dialog with better max-width handling */}
       <DialogContent className="w-full max-w-4xl bg-gray-800 text-white border-gray-700 rounded-lg shadow-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-xl sm:text-2xl font-bold">Add New Widget</DialogTitle>
@@ -166,7 +186,7 @@ export function WidgetBuilder() {
 
               {/* STEP 1 – SELECT FIELDS */}
               <FieldsSelector
-                fields={flattenedData}
+                fields={labeledFields}
                 onChange={(fields) => {
                   setSelectedFields(fields);
                   setDisplayConfig(null);
@@ -179,7 +199,7 @@ export function WidgetBuilder() {
                   <Separator className="bg-gray-700 my-4" />
                   <Label className="text-sm font-medium text-gray-200 block">Display Mode</Label>
                   <DisplayModeBuilder
-                    fields={selectedFields}
+                    fields={labeledFields.filter((f) => selectedFields.includes(f.key))}
                     onChange={(cfg) => setDisplayConfig(cfg)}
                   />
                 </>
@@ -189,7 +209,7 @@ export function WidgetBuilder() {
         </div>
 
         <Separator className="bg-gray-700 my-4" />
-        {/* <CHANGE> Responsive footer with better mobile layout */}
+        {/* Responsive footer with better mobile layout */}
         <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
           <DialogClose asChild>
             <Button className="bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors w-full sm:w-auto">
