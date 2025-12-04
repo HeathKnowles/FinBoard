@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { setLayout } from "@/store/widgetsSlice";
 import { useWidgetAutoRefresh } from "@/hooks/useWidgetAutoRefresh";
 
-const DashboardGrid = dynamic(() => import("@/components/dashboardGrid"), {
+const DashboardGrid = dynamic(() => import("@/components/DashboardGrid"), {
   loading: () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 6 }).map((_, i) => (

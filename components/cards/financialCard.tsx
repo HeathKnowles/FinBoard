@@ -22,7 +22,7 @@ export default function FinancialCard({
     <div className="space-y-1.5 sm:space-y-2 max-h-60 sm:max-h-64 lg:max-h-72 overflow-y-auto">
       {fields.slice(0, 10).map((f) => {
         const value = row[f];
-        const formattedValue = typeof value === "number" ? value.toLocaleString() : String(value);
+        const formattedValue = typeof value === "number" ? value.toString() : String(value);
         const isLargeNumber = typeof value === "number" && Math.abs(value) >= 1000000;
         
         return (

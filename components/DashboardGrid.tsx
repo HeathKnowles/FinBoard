@@ -128,7 +128,7 @@ const WidgetHeader = memo(function WidgetHeader({
               </span>
             </TooltipTrigger>
             <TooltipContent className="text-xs">
-              Updated at: {new Date(widget.lastUpdated).toLocaleTimeString()}
+              Updated at: {new Date(widget.lastUpdated).toISOString().split('T')[1].split('.')[0]}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

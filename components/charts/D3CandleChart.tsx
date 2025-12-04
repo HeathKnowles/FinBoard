@@ -76,7 +76,7 @@ export default function D3CandleChart({
         intersect: false,
         callbacks: {
           title: function (context: any) {
-            return new Date(context[0].parsed.x).toLocaleDateString();
+            return new Date(context[0].parsed.x).toISOString().split('T')[0];
           },
           label: function (context: any) {
             const data = context.raw;

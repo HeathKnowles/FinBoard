@@ -53,7 +53,9 @@ export default function RootLayout({
         />
         
         <Providers>
-          <Navbar />
+          <div suppressHydrationWarning>
+            <Navbar />
+          </div>
           <main>
             {children}
           </main>

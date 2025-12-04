@@ -22,7 +22,7 @@ export default function PerformanceCard({
     <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 max-h-60 sm:max-h-64 lg:max-h-80 overflow-y-auto">
       {fields.slice(0, 12).map((f) => {
         const value = row[f];
-        const formattedValue = typeof value === "number" ? value.toLocaleString() : String(value);
+        const formattedValue = typeof value === "number" ? value.toString() : String(value);
         const isLargeNumber = typeof value === "number" && Math.abs(value) >= 1000000;
         
         return (
