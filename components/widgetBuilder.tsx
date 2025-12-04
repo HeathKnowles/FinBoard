@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAppDispatch } from "@/store/hooks";
 import { addWidget } from "@/store/widgetsSlice";
 import type { DisplayConfig } from "@/types/display";
+import { URLParameterEditor } from "./urlParameterEditor";
 
 const FieldsSelector = dynamic(() => import("./fieldSelector"), {
   loading: () => <div className="h-32 bg-gray-700 rounded animate-pulse" />,
@@ -283,7 +284,6 @@ const WidgetBuilder = memo(function WidgetBuilder() {
           + Add Widget
         </Button>
       </DialogTrigger>
-      {/* Improved responsive dialog with better max-width handling */}
       <DialogContent className="w-full max-w-4xl bg-gray-800 text-white border-gray-700 rounded-lg shadow-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-xl sm:text-2xl font-bold">Add New Widget</DialogTitle>
@@ -303,27 +303,14 @@ const WidgetBuilder = memo(function WidgetBuilder() {
             />
           </div>
 
-          {/* API + TEST */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-200">API URL</Label>
-            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-              <Input
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="https://finnhub.io/api/v1/quote?symbol=AAPL&token=..."
-                className="flex-1 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 focus:border-green-500 focus:ring-green-500 min-h-10"
-              />
-              <Button
-                className="bg-green-500 hover:bg-green-600 text-white font-medium transition-colors w-full sm:w-auto whitespace-nowrap"
-                type="button"
-                onClick={handleTest}
-                disabled={loading}
-              >
-                <Image src="/test.png" width={16} height={16} alt="Test" className="mr-2" />
-                {loading ? "Testing..." : "Test"}
-              </Button>
-            </div>
-          </div>
+          {/* API URL EDITOR */}
+          <URLParameterEditor
+            value={apiUrl}
+            onChange={setApiUrl}
+            placeholder="https://finnhub.io/api/v1/quote?symbol=AAPL&token=..."
+            onTest={handleTest}
+            testLoading={loading}
+          />
 
           {/* REFRESH */}
           <div className="space-y-2">
