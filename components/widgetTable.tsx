@@ -115,7 +115,7 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
   return (
     <div className="space-y-4">
       {(config.searchable || config.paginated) && (
-        <div className="flex flex-wrap items-center gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           {config.searchable && (
             <div className="flex flex-col gap-1">
               <Label htmlFor="search">Search</Label>
@@ -127,12 +127,12 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
                   setPage(1);
                   setSearch(e.target.value);
                 }}
-                className="w-64"
+                className="w-full sm:w-64"
               />
             </div>
           )}
 
-          <div className="flex items-end gap-4 flex-wrap">
+          <div className="flex items-end gap-4 flex-wrap w-full sm:w-auto">
             {config.searchable && (
               <div className="flex flex-col gap-1">
                 <Label>Filter field</Label>
@@ -143,7 +143,7 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
                     setFilterField(v as any);
                   }}
                 >
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue placeholder="All fields" />
                   </SelectTrigger>
                   <SelectContent>
@@ -168,7 +168,7 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
                     setPageSize(Number(v));
                   }}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-full sm:w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -184,14 +184,14 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow>
               {fields.map((field) => (
                 <TableHead
                   key={field}
-                  className="cursor-pointer select-none"
+                  className="cursor-pointer select-none whitespace-nowrap"
                   onClick={() => handleHeaderClick(field)}
                 >
                   <div className="flex items-center gap-1">
@@ -222,7 +222,7 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
                   else if (typeof value === "object") display = JSON.stringify(value);
                   else display = String(value);
 
-                  return <TableCell key={field}>{display}</TableCell>;
+                  return <TableCell key={field} className="whitespace-nowrap">{display}</TableCell>;
                 })}
               </TableRow>
             ))}
