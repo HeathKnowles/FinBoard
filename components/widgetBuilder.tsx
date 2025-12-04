@@ -1,6 +1,26 @@
 "use client";
-import { useState } from "react";
+import { useState, memo, Suspense, startTransition, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import Image from "next/image";
+import { Separator } from "@/components/ui/separator";
+import { useAppDispatch } from "@/store/hooks";
+import { addWidget } from "@/store/widgetsSlice";
+import type { DisplayConfig } from "@/types/display";
+
+const FieldsSelector = dynamic(() => import("./fieldSelector"), {
+  loading: () => <div className="h-32 bg-gray-700 rounded animate-pulse" />,
+  ssr: false,
+});
+
+const DisplayModeBuilder = dynamic(() => import("./displayModeBuilder"), {
+  loading: () => <div className="h-40 bg-gray-700 rounded animate-pulse" />,
+  ssr: false,
+});
+
+// Import dialog components directly to ensure proper accessibility
 import {
   Dialog,
   DialogClose,
@@ -10,19 +30,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import Image from "next/image";
-import { Separator } from "@/components/ui/separator";
-import FieldsSelector from "./fieldSelector";
-import DisplayModeBuilder from "./displayModeBuilder";
-import { humanizeKey } from "@/lib/autolabeller";
-import { analyzeApiResponse, type AnalysisResult } from "@/lib/autoDetectDisplayMode";
-import { useAppDispatch } from "@/store/hooks";
-import { addWidget } from "@/store/widgetsSlice";
-import type { DisplayConfig } from "@/types/display";
 
-// Helper function to select fields based on analysis
+import { analyzeApiResponse, type AnalysisResult } from "@/lib/autoDetectDisplayMode";
+import { humanizeKey } from "@/lib/autolabeller";
+
 function selectFieldsBasedOnAnalysis(analysis: AnalysisResult, allKeys: string[]): string[] {
   const { widgetType, tableColumns, chartFields } = analysis;
 
@@ -34,7 +45,6 @@ function selectFieldsBasedOnAnalysis(analysis: AnalysisResult, allKeys: string[]
     return chartFields;
   }
 
-  // For watchlist/gainers cards, try to find symbol, price, change fields
   if (widgetType === "watchlist" || widgetType === "gainers") {
     const symbolField = allKeys.find(k => k.toLowerCase().includes('symbol') || k.toLowerCase().includes('ticker')) ?? allKeys[0];
     const priceField = allKeys.find(k => k.toLowerCase().includes('price') || k.toLowerCase() === 'c' || k.toLowerCase() === 'close') ?? allKeys[1];
@@ -42,20 +52,16 @@ function selectFieldsBasedOnAnalysis(analysis: AnalysisResult, allKeys: string[]
     return [symbolField, priceField, changeField].filter(Boolean);
   }
 
-  // For performance/financial cards, return all available keys
   if (widgetType === "performance" || widgetType === "financial") {
     return allKeys;
   }
 
-  // Default: return all keys
   return allKeys;
 }
 
-// Helper function to generate display config based on analysis
 function generateDisplayConfig(analysis: AnalysisResult, selectedFields: string[]): DisplayConfig | null {
   const { widgetType, chartFields, intervals } = analysis;
 
-  // Table widget
   if (widgetType === "table") {
     return {
       mode: "table",
@@ -67,7 +73,6 @@ function generateDisplayConfig(analysis: AnalysisResult, selectedFields: string[
     };
   }
 
-  // Card widgets
   if (widgetType === "watchlist" || widgetType === "gainers" || widgetType === "performance" || widgetType === "financial") {
     return {
       mode: "cards",
@@ -78,7 +83,6 @@ function generateDisplayConfig(analysis: AnalysisResult, selectedFields: string[
     };
   }
 
-  // Chart widgets
   if (widgetType === "line-chart") {
     const xField = chartFields[0] || selectedFields[0] || "";
     const yField = chartFields[1] || selectedFields[1] || selectedFields[0] || "";
@@ -112,7 +116,6 @@ function generateDisplayConfig(analysis: AnalysisResult, selectedFields: string[
   if (widgetType === "candle-chart") {
     const dateField = chartFields.find((f) => f.toLowerCase().includes("date") || f.toLowerCase().includes("time") || f.toLowerCase() === "t") || chartFields[0] || selectedFields[0] || "";
     const interval = (intervals === "1D" || intervals === "1W" || intervals === "1M") ? intervals : "1D";
-    // Find OHLC fields from selected fields or chartFields
     const allFields = [...new Set([...selectedFields, ...chartFields])];
     const openField = allFields.find(f => f.toLowerCase() === 'o' || f.toLowerCase() === 'open') ?? "open";
     const highField = allFields.find(f => f.toLowerCase() === 'h' || f.toLowerCase() === 'high') ?? "high";
@@ -137,7 +140,7 @@ function generateDisplayConfig(analysis: AnalysisResult, selectedFields: string[
   return null;
 }
 
-export function WidgetBuilder() {
+const WidgetBuilder = memo(function WidgetBuilder() {
   const dispatch = useAppDispatch();
 
   const [name, setName] = useState("");
@@ -158,7 +161,7 @@ export function WidgetBuilder() {
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig | null>(null);
   const [suggestedWidget, setSuggestedWidget] = useState<string | null>(null);
 
-  async function handleTest() {
+  const handleTest = useCallback(async () => {
     if (!apiUrl.trim()) {
       alert("Please enter an API URL");
       return;
@@ -176,7 +179,7 @@ export function WidgetBuilder() {
         body: JSON.stringify({ 
           url: apiUrl, 
           refreshInterval: refresh,
-          maxAge: refresh * 60, // Set maxAge to 60x refresh interval
+          maxAge: refresh * 60,
         }),
       });
       const json = await res.json();
@@ -186,14 +189,12 @@ export function WidgetBuilder() {
       const keys = json.flattened.filter((key: string) => key && isNaN(Number(key)));
       setFlattenedData(keys);
 
-      // Analyze API response to detect widget type
       const analysis = analyzeApiResponse(json.raw);
       setSuggestedWidget(analysis.widgetType);
 
-      // Build labeled fields with a sample value from the first row
       const firstRow = Array.isArray(json.raw) ? json.raw[0] : json.raw;
       const labeled = keys.map((k: string) => {
-        // support nested keys using dot notation
+        
         const get = (obj: any, path: string) => {
           if (!obj) return undefined;
           return path.split(".").reduce((acc: any, part: string) => (acc == null ? undefined : acc[part]), obj);
@@ -207,11 +208,9 @@ export function WidgetBuilder() {
       });
       setLabeledFields(labeled);
 
-      // Auto-select fields based on widget type and analysis
       const autoSelectedFields = selectFieldsBasedOnAnalysis(analysis, keys);
       setSelectedFields(autoSelectedFields);
 
-      // Auto-generate display config based on analysis
       const autoConfig = generateDisplayConfig(analysis, autoSelectedFields);
       if (autoConfig) {
         setDisplayConfig(autoConfig);
@@ -224,9 +223,9 @@ export function WidgetBuilder() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [apiUrl, refresh]);
 
-  function handleAddWidget() {
+  const handleAddWidget = useCallback(() => {
     if (!testSuccess) {
       alert("Please test the API first.");
       return;
@@ -241,18 +240,20 @@ export function WidgetBuilder() {
     }
 
     const id = crypto.randomUUID();
-    dispatch(
-      addWidget({
-        id,
-        name: name || "New Widget",
-        apiUrl,
-        refresh,
-        config: displayConfig,
-        data: Array.isArray(rawData) ? rawData : [rawData],
-        flattened: flattenedData,
-      })
-    );
-  }
+    startTransition(() => {
+      dispatch(
+        addWidget({
+          id,
+          name: name || "New Widget",
+          apiUrl,
+          refresh,
+          config: displayConfig,
+          data: Array.isArray(rawData) ? rawData : [rawData],
+          flattened: flattenedData,
+        })
+      );
+    });
+  }, [testSuccess, selectedFields, displayConfig, dispatch, name, apiUrl, refresh, rawData, flattenedData]);
 
   return (
     <Dialog>
@@ -355,7 +356,6 @@ export function WidgetBuilder() {
         </div>
 
         <Separator className="bg-gray-700 my-4" />
-        {/* Responsive footer with better mobile layout */}
         <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
           <DialogClose asChild>
             <Button className="bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors w-full sm:w-auto">
@@ -375,4 +375,6 @@ export function WidgetBuilder() {
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+export { WidgetBuilder };
