@@ -9,12 +9,29 @@ export function useWidgetAutoRefresh() {
   const widgets = useAppSelector((state) => state.widgets.widgets);
 
   useEffect(() => {
-    const intervals: NodeJS.Timeout[] = []; // ⭐ Correct type
+    const urlGroups = widgets.reduce((acc, widget) => {
+      if (!widget.refresh || !widget.apiUrl) return acc;
+      
+      if (!acc[widget.apiUrl]) {
+        acc[widget.apiUrl] = {
+          widgets: [],
+          refreshInterval: widget.refresh
+        };
+      }
+      
+      acc[widget.apiUrl].widgets.push(widget);
+      acc[widget.apiUrl].refreshInterval = Math.min(
+        acc[widget.apiUrl].refreshInterval,
+        widget.refresh
+      );
+      
+      return acc;
+    }, {} as Record<string, { widgets: typeof widgets, refreshInterval: number }>);
 
-    widgets.forEach((widget) => {
-      if (!widget.refresh || !widget.apiUrl) return;
+    const intervals: NodeJS.Timeout[] = [];
 
-      const intervalMs = widget.refresh * 1000;
+    Object.entries(urlGroups).forEach(([url, group]) => {
+      const intervalMs = group.refreshInterval * 1000;
 
       const intervalId = setInterval(async () => {
         try {
@@ -22,9 +39,9 @@ export function useWidgetAutoRefresh() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
-              url: widget.apiUrl,
-              refreshInterval: widget.refresh,
-              maxAge: widget.refresh * 60, // Keep data valid for 60x refresh interval
+              url: url,
+              refreshInterval: group.refreshInterval,
+              maxAge: group.refreshInterval * 60,
             }),
           });
 
@@ -35,18 +52,20 @@ export function useWidgetAutoRefresh() {
             ? json.raw
             : [json.raw];
 
-          dispatch(
-            updateWidgetData({
-              id: widget.id,
-              data: preparedData,
-              flattened: json.flattened,
-              cached: json.cached,
-              stale: json.stale,
-              fromFallback: json.fromFallback,
-            })
-          );
+          group.widgets.forEach((widget) => {
+            dispatch(
+              updateWidgetData({
+                id: widget.id,
+                data: preparedData,
+                flattened: json.flattened,
+                cached: json.cached,
+                stale: json.stale,
+                fromFallback: json.fromFallback,
+              })
+            );
+          });
         } catch (err) {
-          console.error("Auto-refresh failed:", err);
+          console.error(`Auto-refresh failed for ${url}:`, err);
         }
       }, intervalMs);
 
@@ -56,5 +75,5 @@ export function useWidgetAutoRefresh() {
     return () => {
       intervals.forEach((id) => clearInterval(id));
     };
-  }, [widgets, dispatch]);
+  }, [widgets.length, dispatch]);
 }

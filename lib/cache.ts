@@ -30,9 +30,7 @@ class IntelligentCache {
   }
 
   private generateKey(url: string, options?: CacheOptions): string {
-
-    const interval = options?.refreshInterval || 60;
-    return `${url}:${interval}`;
+    return `cache:${url}`;
   }
 
   private isDataFresh(entry: CacheEntry): boolean {
