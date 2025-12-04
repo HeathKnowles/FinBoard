@@ -12,10 +12,18 @@ interface WidgetChartProps {
 }
 
 export default function WidgetChart({ config, data }: WidgetChartProps) {
-  if (!config || !data) return null;
+  if (!config || !data || !Array.isArray(data) || data.length === 0) return null;
 
-  const x = config.xField ?? Object.keys(data[0] || {})[0] ?? "x";
-  const y = config.yField ?? Object.keys(data[0] || {})[1] ?? "y";
+  const sample = data[0];
+  
+  // Smart field detection for different chart types
+  const x = config.xField ?? 
+    Object.keys(sample).find(k => k === 'x' || k.includes('time') || k.includes('date')) ?? 
+    Object.keys(sample)[0] ?? "x";
+    
+  const y = config.yField ?? 
+    Object.keys(sample).find(k => k === 'close' || k === 'price' || k === 'value') ??
+    Object.keys(sample)[1] ?? "y";
 
   if (config.type === "line") {
     return <D3LineChart data={data} xField={x} yField={y} />;
@@ -26,21 +34,38 @@ export default function WidgetChart({ config, data }: WidgetChartProps) {
   }
 
   if (config.type === "candle") {
+    // Enhanced OHLC field detection
+    const xField = config.xField ?? 
+      Object.keys(sample).find(k => k === 'x' || k.includes('time') || k.includes('date')) ?? 
+      'x';
+      
+    const openField = config.openField ?? 
+      Object.keys(sample).find(k => k === 'open' || k === 'o') ?? 'open';
+      
+    const highField = config.highField ?? 
+      Object.keys(sample).find(k => k === 'high' || k === 'h') ?? 'high';
+      
+    const lowField = config.lowField ?? 
+      Object.keys(sample).find(k => k === 'low' || k === 'l') ?? 'low';
+      
+    const closeField = config.closeField ?? 
+      Object.keys(sample).find(k => k === 'close' || k === 'c') ?? 'close';
+
     return (
       <D3CandleChart
         data={data}
-        xField={x}
-        openField={config.openField ?? "open"}
-        highField={config.highField ?? "high"}
-        lowField={config.lowField ?? "low"}
-        closeField={config.closeField ?? "close"}
+        xField={xField}
+        openField={openField}
+        highField={highField}
+        lowField={lowField}
+        closeField={closeField}
       />
     );
   }
 
   if (config.type === "bar") {
-    return <div>Bar chart not implemented yet</div>;
+    return <div className="flex items-center justify-center h-32 text-gray-400">Bar chart not implemented yet</div>;
   }
 
-  return null;
+  return <div className="flex items-center justify-center h-32 text-gray-400">Unknown chart type: {config.type}</div>;
 }
