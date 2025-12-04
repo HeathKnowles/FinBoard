@@ -122,3 +122,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure widget header buttons are always clickable */
+@layer components {
+  .react-grid-layout-no-drag {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+  
+  .react-grid-layout-no-drag button {
+    pointer-events: auto !important;
+    z-index: 1000 !important;
+    position: relative !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .widget-header {
+    user-select: none !important;
+  }
+
+  .widget-header button {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+  }
+}

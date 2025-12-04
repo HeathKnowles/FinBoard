@@ -51,10 +51,20 @@ const WidgetHeader = memo(function WidgetHeader({
   onRemove: () => void; 
 }) {
   return (
-    <div className="widget-header p-2 bg-gray-800 flex justify-between items-center cursor-move select-none">
+    <div className="widget-header p-2 bg-gray-800 flex justify-between items-center cursor-move select-none" style={{ position: 'relative' }}>
       <span className="font-semibold">{widget.name}</span>
 
-      <div className="flex items-center gap-3">
+      <div 
+        className="flex items-center gap-3 react-grid-layout-no-drag" 
+        style={{ 
+          pointerEvents: 'auto', 
+          position: 'relative', 
+          zIndex: 10,
+          isolation: 'isolate'
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
         {(widget.cached || widget.stale || widget.fromFallback) && (
           <TooltipProvider>
             <Tooltip>
@@ -102,8 +112,14 @@ const WidgetHeader = memo(function WidgetHeader({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={onRefresh}
-                className="text-xs px-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRefresh();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="text-xs px-2 pointer-events-auto select-none"
+                style={{ touchAction: 'manipulation' }}
               >
                 🔄
               </Button>
@@ -117,7 +133,14 @@ const WidgetHeader = memo(function WidgetHeader({
         <Button
           size="sm"
           variant="secondary"
-          onClick={onConfig}
+          onClick={(e) => {
+            e.stopPropagation();
+            onConfig();
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="pointer-events-auto select-none"
+          style={{ touchAction: 'manipulation' }}
         >
           ⚙
         </Button>
@@ -125,7 +148,18 @@ const WidgetHeader = memo(function WidgetHeader({
         <Button
           size="sm"
           variant="destructive"
-          onClick={onRemove}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="pointer-events-auto select-none min-w-8 h-8"
+          style={{ 
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent'
+          }}
+          aria-label="Delete widget"
         >
           ✕
         </Button>
@@ -188,11 +222,18 @@ const DashboardGrid = memo(function DashboardGrid() {
     }
   }, [dispatch]);
 
+  const [deleteConfirmWidget, setDeleteConfirmWidget] = useState<string | null>(null);
+
   const removeWidgetHandler = useCallback((widgetId: string) => {
-    startTransition(() => {
-      dispatch(removeWidget(widgetId));
-    });
-  }, [dispatch]);
+    setDeleteConfirmWidget(widgetId);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (deleteConfirmWidget) {
+      dispatch(removeWidget(deleteConfirmWidget));
+      setDeleteConfirmWidget(null);
+    }
+  }, [deleteConfirmWidget, dispatch]);
 
   if (widgets.length === 0) {
     return (
@@ -287,6 +328,42 @@ const DashboardGrid = memo(function DashboardGrid() {
             </DialogContent>
           </Dialog>
         </Suspense>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmWidget && (
+        <Dialog
+          open={!!deleteConfirmWidget}
+          onOpenChange={() => setDeleteConfirmWidget(null)}
+        >
+          <DialogContent className="bg-gray-900 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-400">Delete Widget</DialogTitle>
+            </DialogHeader>
+
+            <div className="py-4">
+              <p className="text-gray-300">
+                Are you sure you want to remove this widget? This action cannot be undone.
+              </p>
+            </div>
+
+            <DialogFooter className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setDeleteConfirmWidget(null)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Widget
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );

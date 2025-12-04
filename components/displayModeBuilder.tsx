@@ -189,16 +189,27 @@ export default function DisplayModeBuilder({
           <Label className="text-sm font-semibold text-gray-200">Chart Type</Label>
           <Select
             value={value?.mode === "chart" ? value.chart?.type : undefined}
-            onValueChange={(value) =>
-              update({
-                chart: {
-                  type: value as any,
-                  xField: fieldKeys[0],
-                  yField: fieldKeys[1] || fieldKeys[0],
-                  interval: "1D",
-                },
-              })
-            }
+            onValueChange={(chartType) => {
+              if (chartType === "candle") {
+                update({
+                  chart: {
+                    type: "candle" as any,
+                    xField: "date", 
+                    yField: "close", 
+                    interval: "1D",
+                  },
+                });
+              } else {
+                update({
+                  chart: {
+                    type: chartType as any,
+                    xField: fieldKeys[0],
+                    yField: fieldKeys[1] || fieldKeys[0],
+                    interval: "1D",
+                  },
+                });
+              }
+            }}
           >
             <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
               <SelectValue placeholder="Select chart type" />
@@ -214,66 +225,81 @@ export default function DisplayModeBuilder({
                 Bar
               </SelectItem>
               <SelectItem value="candle" className="text-white">
-                Candle
+                Candlestick
               </SelectItem>
             </SelectContent>
           </Select>
 
-          {/* X Axis Field */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-gray-300">X Axis Field</Label>
-            <Select
-              onValueChange={(v) =>
-                update({
-                  chart: {
-                    type: "line",
-                    xField: v,
-                    yField: fieldKeys[0],
-                    interval: "1D",
-                  },
-                })
-              }
-            >
-              <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
-                <SelectValue placeholder="Select X field" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
-                {normalizedFields.map((f) => (
-                  <SelectItem key={f.key} value={f.key} className="text-white">
-                    {f.label ?? f.key}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Field selectors - only show for non-candlestick charts */}
+          {value?.mode === "chart" && value.chart?.type !== "candle" && (
+            <>
+              {/* X Axis Field */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-gray-300">X Axis Field</Label>
+                <Select
+                  value={value.chart?.xField}
+                  onValueChange={(v) =>
+                    update({
+                      chart: {
+                        ...value.chart!,
+                        xField: v,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Select X field" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {normalizedFields.map((f) => (
+                      <SelectItem key={f.key} value={f.key} className="text-white">
+                        {f.label ?? f.key}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Y Axis Field */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-gray-300">Y Axis Field</Label>
-            <Select
-              onValueChange={(v) =>
-                update({
-                  chart: {
-                    type: "line",
-                    xField: fieldKeys[0],
-                    yField: v,
-                    interval: "1D",
-                  },
-                })
-              }
-            >
-              <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
-                <SelectValue placeholder="Select Y field" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
-                {normalizedFields.map((f) => (
-                  <SelectItem key={f.key} value={f.key} className="text-white">
-                    {f.label ?? f.key}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              {/* Y Axis Field */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-gray-300">Y Axis Field</Label>
+                <Select
+                  value={value.chart?.yField}
+                  onValueChange={(v) =>
+                    update({
+                      chart: {
+                        ...value.chart!,
+                        yField: v,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-white">
+                    <SelectValue placeholder="Select Y field" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    {normalizedFields.map((f) => (
+                      <SelectItem key={f.key} value={f.key} className="text-white">
+                        {f.label ?? f.key}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {/* Candlestick info */}
+          {value?.mode === "chart" && value.chart?.type === "candle" && (
+            <div className="p-3 rounded-lg bg-blue-900/20 border border-blue-700/50">
+              <Label className="text-sm font-medium text-blue-200 block mb-2">
+                📈 Candlestick Chart
+              </Label>
+              <p className="text-xs text-blue-300">
+                Automatically detects OHLC fields (Open, High, Low, Close) and date/time field from your data.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

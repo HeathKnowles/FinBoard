@@ -160,10 +160,15 @@ const WidgetBuilder = memo(function WidgetBuilder() {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [displayConfig, setDisplayConfig] = useState<DisplayConfig | null>(null);
   const [suggestedWidget, setSuggestedWidget] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{type: 'error' | 'warning' | 'info'; title: string; message: string} | null>(null);
 
   const handleTest = useCallback(async () => {
     if (!apiUrl.trim()) {
-      alert("Please enter an API URL");
+      setNotification({
+        type: 'warning',
+        title: 'Missing API URL',
+        message: 'Please enter an API URL to test the connection.'
+      });
       return;
     }
 
@@ -218,7 +223,11 @@ const WidgetBuilder = memo(function WidgetBuilder() {
 
       setTestSuccess(true);
     } catch (error: any) {
-      alert("Test failed: " + error.message);
+      setNotification({
+        type: 'error',
+        title: 'API Test Failed',
+        message: error.message || 'Failed to connect to the API. Please check the URL and try again.'
+      });
       setTestSuccess(false);
     } finally {
       setLoading(false);
@@ -227,15 +236,27 @@ const WidgetBuilder = memo(function WidgetBuilder() {
 
   const handleAddWidget = useCallback(() => {
     if (!testSuccess) {
-      alert("Please test the API first.");
+      setNotification({
+        type: 'warning',
+        title: 'API Not Tested',
+        message: 'Please test the API connection before adding the widget.'
+      });
       return;
     }
     if (!selectedFields.length) {
-      alert("Please select fields.");
+      setNotification({
+        type: 'warning',
+        title: 'No Fields Selected',
+        message: 'Please select at least one field to display in the widget.'
+      });
       return;
     }
     if (!displayConfig) {
-      alert("Please choose a display mode.");
+      setNotification({
+        type: 'warning',
+        title: 'No Display Mode',
+        message: 'Please choose how you want to display the widget data.'
+      });
       return;
     }
 
@@ -373,6 +394,38 @@ const WidgetBuilder = memo(function WidgetBuilder() {
           </DialogClose>
         </DialogFooter>
       </DialogContent>
+
+      {/* Notification Dialog */}
+      {notification && (
+        <Dialog open={!!notification} onOpenChange={() => setNotification(null)}>
+          <DialogContent className="bg-gray-900 text-white max-w-md border-gray-700">
+            <DialogHeader>
+              <DialogTitle className={`flex items-center gap-2 ${
+                notification.type === 'error' ? 'text-red-400' : 
+                notification.type === 'warning' ? 'text-yellow-400' : 'text-blue-400'
+              }`}>
+                {notification.type === 'error' ? '❌' : notification.type === 'warning' ? '⚠️' : 'ℹ️'}
+                {notification.title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-300">{notification.message}</p>
+            </div>
+            <DialogFooter>
+              <Button 
+                onClick={() => setNotification(null)}
+                className={`${
+                  notification.type === 'error' ? 'bg-red-600 hover:bg-red-700' :
+                  notification.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                  'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                OK
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 });

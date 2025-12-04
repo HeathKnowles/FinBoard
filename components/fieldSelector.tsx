@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, FC } from "react";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface FieldInfo {
   key: string;
@@ -69,12 +70,14 @@ const FieldsSelector: FC<FieldsSelectorProps> = ({ fields = [], onChange }) => {
                 className="flex items-center justify-between px-3 py-2 rounded-md bg-gray-800 border border-gray-700 hover:border-green-500 transition-colors group"
               >
                 <span className="text-sm text-gray-200 truncate">{field.label ?? field.key}</span>
-                <button
+                <Button
+                  size="sm"
+                  variant="default"
                   onClick={() => addField(field.key)}
-                  className="ml-2 px-2.5 py-1 rounded-md bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  className="ml-2 bg-green-500 hover:bg-green-600 text-white text-sm opacity-0 group-hover:opacity-100 shrink-0"
                 >
                   +
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -95,12 +98,14 @@ const FieldsSelector: FC<FieldsSelectorProps> = ({ fields = [], onChange }) => {
                 className="flex items-center justify-between px-3 py-2 rounded-md bg-green-900/30 border border-green-700/50 hover:border-green-500 transition-colors group"
               >
                 <span className="text-sm text-green-100 truncate">{labelMap[fieldKey] ?? fieldKey}</span>
-                <button
+                <Button
+                  size="sm"
+                  variant="destructive"
                   onClick={() => removeField(fieldKey)}
-                  className="ml-2 px-2.5 py-1 rounded-md bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  className="ml-2 text-sm opacity-0 group-hover:opacity-100 shrink-0"
                 >
                   ×
-                </button>
+                </Button>
               </div>
             ))}
           </div>

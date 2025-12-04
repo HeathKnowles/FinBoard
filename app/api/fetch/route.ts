@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { intelligentCache } from "@/lib/cache";
-import { dataReshaper } from "@/lib/dataReshaper";
+import { dataReshaper, convertTimeSeriesData } from "@/lib/dataReshaper";
 
 export const runtime = 'nodejs';
 
@@ -34,11 +34,16 @@ export async function POST(req: Request) {
     };
 
     const result = await intelligentCache.get(url, cacheOptions);
+    
+    // Convert Alpha Vantage time series to array format if needed
+    const timeSeriesArray = convertTimeSeriesData(result.data);
+    const processedData = timeSeriesArray || result.data;
+    
     const flattened = dataReshaper(result.data);
 
     const response = NextResponse.json({
       success: true,
-      raw: result.data,
+      raw: processedData, // Use converted data for widgets
       flattened,
       cached: result.cached,
       stale: result.stale || false,
@@ -47,6 +52,8 @@ export async function POST(req: Request) {
         refreshInterval,
         maxAge,
         timestamp: Date.now(),
+        originalFormat: timeSeriesArray ? 'alpha-vantage-time-series' : 'standard',
+        symbol: result.data?.['Meta Data']?.['2. Symbol'] || null,
       }
     });
 

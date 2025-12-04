@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import {
   Pagination,
   PaginationContent,
@@ -189,15 +190,18 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
           <TableHeader>
             <TableRow>
               {fields.map((field) => (
-                <TableHead
-                  key={field}
-                  className="cursor-pointer select-none whitespace-nowrap"
-                  onClick={() => handleHeaderClick(field)}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>{field}</span>
-                    <span className="text-xs opacity-60">{sortIndicator(field)}</span>
-                  </div>
+                <TableHead key={field} className="whitespace-nowrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleHeaderClick(field)}
+                    className="h-auto p-0 font-semibold text-left justify-start hover:bg-transparent"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>{field}</span>
+                      <span className="text-xs opacity-60">{sortIndicator(field)}</span>
+                    </div>
+                  </Button>
                 </TableHead>
               ))}
             </TableRow>
@@ -235,38 +239,40 @@ export function WidgetTable({ data, config }: WidgetTableProps) {
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage((p) => Math.max(1, p - 1));
-                  }}
-                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="gap-1 pl-2.5"
+                >
+                  ← Previous
+                </Button>
               </PaginationItem>
 
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <PaginationItem key={p}>
-                  <PaginationLink
-                    href="#"
-                    isActive={p === currentPage}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage(p);
-                    }}
+                  <Button
+                    variant={p === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPage(p)}
+                    className="min-w-10"
                   >
                     {p}
-                  </PaginationLink>
+                  </Button>
                 </PaginationItem>
               ))}
 
               <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage((p) => Math.min(totalPages, p + 1));
-                  }}
-                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="gap-1 pr-2.5"
+                >
+                  Next →
+                </Button>
               </PaginationItem>
             </PaginationContent>
           </Pagination>

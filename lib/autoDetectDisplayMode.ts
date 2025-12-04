@@ -31,7 +31,19 @@ export function analyzeApiResponse(data: any): AnalysisResult {
 export function detectWidgetType(data: any): string {
   if (!data) return "finance-card";
 
+  // Check for Alpha Vantage time series format
+  const timeSeriesKeys = ['Time Series (Daily)', 'Time Series (Weekly)', 'Time Series (Monthly)', 'Time Series (Intraday)', 'Time Series (1min)', 'Time Series (5min)'];
+  const hasTimeSeries = timeSeriesKeys.some(key => data[key] && typeof data[key] === 'object');
+  if (hasTimeSeries) {
+    return "candle-chart"; // Alpha Vantage data is perfect for candlestick charts
+  }
+
   if (Array.isArray(data) && data.length > 0 && typeof data[0] === "object") {
+    // Check if it looks like OHLC data
+    const sample = data[0];
+    if (sample.open !== undefined && sample.high !== undefined && sample.low !== undefined && sample.close !== undefined) {
+      return "candle-chart";
+    }
     return "table";
   }
 
@@ -116,33 +128,51 @@ export function detectChartFields(data: any) {
 export function detectInterval(data: any): string | null {
   if (!data) return null;
 
-  if (data.s === "ok" && data.t) return "intraday";
+  // Check Alpha Vantage time series keys
+  const timeSeriesKeys = Object.keys(data);
+  for (const key of timeSeriesKeys) {
+    if (key.includes('Daily')) return '1D';
+    if (key.includes('Weekly')) return '1W';
+    if (key.includes('Monthly')) return '1M';
+    if (key.includes('1min') || key.includes('5min') || key.includes('Intraday')) return '1H';
+  }
+
+  if (data.s === "ok" && data.t) return "1H";
 
   const intervalKeys = ["1h", "1d", "1w", "1mo", "5min", "daily", "weekly", "monthly"];
   const dataKeys = Object.keys(data).map((k) => k.toLowerCase());
 
   for (const key of dataKeys) {
-    if (key.includes("day") || key.includes("1d")) return "daily";
-    if (key.includes("week") || key.includes("1w")) return "weekly";
-    if (key.includes("month") || key.includes("1mo")) return "monthly";
-    if (key.includes("min") || key.includes("hour") || key.includes("1h")) return "intraday";
+    if (key.includes("day") || key.includes("1d")) return "1D";
+    if (key.includes("week") || key.includes("1w")) return "1W";
+    if (key.includes("month") || key.includes("1mo")) return "1M";
+    if (key.includes("min") || key.includes("hour") || key.includes("1h")) return "1H";
   }
 
   if (data.interval) {
     const interval = String(data.interval).toLowerCase();
-    if (interval.includes("d")) return "daily";
-    if (interval.includes("w")) return "weekly";
-    if (interval.includes("m") && !interval.includes("min")) return "monthly";
-    if (interval.includes("min") || interval.includes("h")) return "intraday";
+    if (interval.includes("d")) return "1D";
+    if (interval.includes("w")) return "1W";
+    if (interval.includes("m") && !interval.includes("min")) return "1M";
+    if (interval.includes("min") || interval.includes("h")) return "1H";
   }
 
-  return "unknown";
+  return "1D";
 }
 
 export function detectSymbol(data: any): string | null {
   const keys = ["symbol", "ticker", "displaySymbol", "code", "stockSymbol"];
 
   if (!data) return null;
+  
+  // Check Alpha Vantage metadata format
+  if (data['Meta Data']) {
+    const metadata = data['Meta Data'];
+    if (metadata['2. Symbol']) {
+      return metadata['2. Symbol'];
+    }
+  }
+  
   for (const k of keys) {
     if (k in data && typeof data[k] === "string") return data[k];
   }
